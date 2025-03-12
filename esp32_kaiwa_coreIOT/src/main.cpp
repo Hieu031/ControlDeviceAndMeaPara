@@ -13,7 +13,7 @@ void sendPumpStatus();
 
 // Cấu hình WiFi
 constexpr char WIFI_SSID[] = "Wokwi-GUEST";
-constexpr char WIFI_PASSWORD[] = "";  // As silumlate by Wokwi, so not need password.
+constexpr char WIFI_PASSWORD[] = "";  // As simulate by Wokwi, so not need password.
 
 // Cấu hình CoreIoT MQTT
 constexpr char TOKEN[] = "jchkq8hjfq0xbmwwhdmr";
