@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <ESP32Servo.h>
+#include <DHT.h>
 // Cấu hình WiFi
 constexpr char WIFI_SSID[] = "Wokwi-GUEST";
 constexpr char WIFI_PASSWORD[] = "";  // Wokwi WiFi không cần mật khẩu
@@ -17,15 +18,19 @@ PubSubClient mqttClient(wifiClient);
 //Define Led pin
 constexpr int LED_PIN = 2;
 constexpr int Servo_PIN = 4;
+constexpr int DHT_PIN = 5;
+constexpr int DHT_TYPE = DHT22;
 
 //status devices
 bool ledstate = false;
 int servoAngle = 0; //rotation angle of servo
+
 //Frequence send data 5 seconds
-const int TELEMETRY_SEND_INTERVAL = 5000;
+const int TELEMETRY_SEND_INTERVAL = 2000;
 unsigned long lastSendTime = 0;
 
-//object Servo
+//object Servo & DHT22
+DHT dht(DHT_PIN, DHT_TYPE);
 Servo myServo;
 
 //Connect wifi
@@ -131,6 +136,7 @@ void setup() {
   Serial.begin(115200);
   pinMode(LED_PIN, OUTPUT);
   myServo.attach(Servo_PIN);
+  dht.begin();
   delay(1000);
   Serial.println("ESP32 is running in Wokwi!\n");
   InitWiFi();
@@ -149,17 +155,22 @@ void loop() {
   updateDevices();
   //Send data every 5 seconds
   if (millis() - lastSendTime > TELEMETRY_SEND_INTERVAL) {
-    float temperature = random(20, 40); //fretend temperature
-    float humidity = random(50, 100); //fretend humidity
-
-    char payload[100];
-    snprintf(payload, sizeof(payload), "{\"temperature\": %.1f, \"humidity\": %.1f}", temperature, humidity);
-    if(mqttClient.publish("v1/devices/me/telemetry", payload)){
-      Serial.println("Data sent successfully: " + String(payload));
-    }else{
-      Serial.println("Error send data!");
+    float temperature = dht.readTemperature(); //read temperature 
+     //random(20, 40); //fretend temperature
+    float humidity = dht.readHumidity(); //read humidity
+    //random(50, 100); //fretend humidity
+    if (isnan(temperature) || isnan(humidity)){
+      Serial.println("Erorr reading from DHT22 sensor!");}
+    else{
+      char payload[100];
+      snprintf(payload, sizeof(payload), "{\"temperature\": %.1f, \"humidity\": %.1f}", temperature, humidity);
+      if(mqttClient.publish("v1/devices/me/telemetry", payload)){
+        Serial.println("Data sent successfully: " + String(payload));
+      }else{
+        Serial.println("Error send data!");
+      }
     }
-    lastSendTime = millis();
+      lastSendTime = millis();
   }
   mqttClient.publish("v1/devices/me/attributes", "{\"test\":\"Hello CoreIoT\"}");
 
